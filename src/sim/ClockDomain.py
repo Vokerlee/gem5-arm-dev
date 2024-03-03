@@ -36,6 +36,17 @@
 from m5.params import *
 from m5.proxy import *
 from m5.SimObject import SimObject
+from m5.util.fdthelper import (
+    FdtNode,
+    FdtProperty,
+    FdtPropertyWords,
+    FdtState,
+)
+
+devfreq_mappings = {
+    0x400: "ddrfreq",
+    0x401: "l3cfreq",
+}
 
 
 # Abstract clock domain
@@ -71,6 +82,23 @@ class SrcClockDomain(ClockDomain):
     # Initial performance level from the list of available operation points
     # Defaults to maximum performance
     init_perf_level = Param.UInt32(0, "Initial performance level")
+
+    def generateDeviceTree(self, state):
+        if int(self.domain_id) >= 0:
+            reg = int(self.domain_id)
+            device_name = "clock_domain"
+            if int(self.domain_id) in devfreq_mappings:
+                device_name = devfreq_mappings[int(self.domain_id)]
+
+            node = FdtNode(f"{device_name}@{reg:x}")
+            node.append(FdtPropertyWords("#size-cells", [4]))
+            node.append(FdtPropertyWords("#address-cells", [0]))
+            node.appendCompatible([f"gem5-clock-domain,id{reg:x}"])
+            node.append(FdtPropertyWords("reg", state.int_to_cells(reg, 4)))
+
+            yield node
+        else:
+            return SimObject.generateDeviceTree(self, state)
 
 
 # Derived clock domain with a parent clock domain and a frequency
