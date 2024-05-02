@@ -42,6 +42,7 @@
 #include "sim/system.hh"
 
 #include <algorithm>
+#include <cstddef>
 
 #include "base/compiler.hh"
 #include "base/cprintf.hh"
@@ -465,22 +466,38 @@ System::lookupRequestorId(const std::string& requestor_name) const
     return Request::invldRequestorId;
 }
 
-RequestorID
-System::getGlobalRequestorId(const std::string& requestor_name)
+bool
+System::isRequestorCPU(RequestorID requestor_id, size_t* numCPU)
 {
-    return _getRequestorId(nullptr, requestor_name);
+    for (int i =0; i < requestorsCPU.size(); i++) {
+        if (requestorsCPU[i].id == requestor_id) {
+            if (numCPU) {
+                *numCPU = i;
+            }
+
+            return true;
+        }
+    }
+
+    return false;
 }
 
 RequestorID
-System::getRequestorId(const SimObject* requestor, std::string subrequestor)
+System::getGlobalRequestorId(const std::string& requestor_name)
+{
+    return _getRequestorId(nullptr, requestor_name, false);
+}
+
+RequestorID
+System::getRequestorId(const SimObject* requestor, std::string subrequestor, bool isCPU)
 {
     auto requestor_name = leafRequestorName(requestor, subrequestor);
-    return _getRequestorId(requestor, requestor_name);
+    return _getRequestorId(requestor, requestor_name, isCPU);
 }
 
 RequestorID
 System::_getRequestorId(const SimObject* requestor,
-                     const std::string& requestor_name)
+                     const std::string& requestor_name, bool isCPU)
 {
     std::string name = stripSystemName(requestor_name);
 
@@ -505,6 +522,10 @@ System::_getRequestorId(const SimObject* requestor,
 
     // Append the new Requestor metadata to the group of system Requestors.
     requestors.emplace_back(requestor, name, requestor_id);
+
+    if (isCPU) {
+        requestorsCPU.emplace_back(requestor, name, requestor_id);
+    }
 
     return requestors.back().id;
 }

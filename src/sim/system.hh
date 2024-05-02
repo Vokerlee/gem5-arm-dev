@@ -418,6 +418,11 @@ class System : public SimObject, public PCEventScope
      */
     std::vector<RequestorInfo> requestors;
 
+    /** The same as requestors (see above), but is used for more specific purposes,
+     * like detecting CPUs in PMU events.
+     */
+    std::vector<RequestorInfo> requestorsCPU;
+
     ThermalModel * thermalModel;
 
   protected:
@@ -462,7 +467,7 @@ class System : public SimObject, public PCEventScope
      * @return the requestor's ID.
      */
     RequestorID getRequestorId(const SimObject* requestor,
-                         std::string subrequestor={});
+                         std::string subrequestor={}, bool isCPU = false);
 
     /**
      * Registers a GLOBAL RequestorID, which is a RequestorID not related
@@ -492,12 +497,17 @@ class System : public SimObject, public PCEventScope
     RequestorID lookupRequestorId(const std::string& name) const;
 
     /** Get the number of requestors registered in the system */
-    RequestorID maxRequestors() { return requestors.size(); }
+    RequestorID maxRequestors() const { return requestors.size(); }
+
+    size_t maxCPURequestors() const { return requestorsCPU.size(); }
 
   protected:
+    /** Check if requestor is CPU */
+    bool isRequestorCPU(RequestorID requestor_id, size_t* numCPU);
+
     /** helper function for getRequestorId */
     RequestorID _getRequestorId(const SimObject* requestor,
-                          const std::string& requestor_name);
+                          const std::string& requestor_name, bool isCPU);
 
     /**
      * Helper function for constructing the full (sub)requestor name

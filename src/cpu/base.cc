@@ -128,8 +128,8 @@ CPUProgressEvent::description() const
 
 BaseCPU::BaseCPU(const Params &p, bool is_checker)
     : ClockedObject(p), instCnt(0), _cpuId(p.cpu_id), _socketId(p.socket_id),
-      _instRequestorId(p.system->getRequestorId(this, "inst")),
-      _dataRequestorId(p.system->getRequestorId(this, "data")),
+      _instRequestorId(p.system->getRequestorId(this, "inst", true)),
+      _dataRequestorId(p.system->getRequestorId(this, "data", true)),
       _taskId(context_switch_task_id::Unknown), _pid(invldPid),
       _switchedOut(p.switched_out), _cacheLineSize(p.system->cacheLineSize()),
       modelResetPort(p.name + ".model_reset"),
