@@ -216,6 +216,9 @@ class BaseCPU(ClockedObject):
         self, ic, dc, l2c, iwc=None, dwc=None, xbar=None
     ):
         self.addPrivateSplitL1Caches(ic, dc, iwc, dwc)
+        self.addL2Cache(l2c, xbar)
+
+    def addL2Cache(self, l2c, xbar=None)
         self.toL2Bus = xbar if xbar else L2XBar()
         self.connectCachedPorts(self.toL2Bus.cpu_side_ports)
         self.l2cache = l2c

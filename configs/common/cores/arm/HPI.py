@@ -1730,7 +1730,7 @@ class HPI_L2(Cache):
     size = "1024kB"
     assoc = 16
     write_buffers = 16
-    # prefetcher FIXME
+    prefetcher = StridePrefetcher(queue_size=8, degree=12)
 
 
 class HPI(ArmMinorCPU):

@@ -41,7 +41,7 @@ from common import (
 import m5.objects
 
 
-def create_mem_intf(intf, r, i, intlv_bits, intlv_size, xor_low_bit):
+def create_mem_intf(intf, r, i, intlv_bits, intlv_size, xor_low_bit, clk_domain):
     """
     Helper function for creating a single memory controller from the given
     options.  This function is invoked multiple times in config_mem function
@@ -64,7 +64,7 @@ def create_mem_intf(intf, r, i, intlv_bits, intlv_size, xor_low_bit):
 
     # Create an instance so we can figure out the address
     # mapping and row-buffer size
-    interface = intf()
+    interface = intf(clk_domain=clk_domain)
 
     # Only do this for DRAMs
     if issubclass(intf, m5.objects.DRAMInterface):
@@ -111,7 +111,7 @@ def create_mem_intf(intf, r, i, intlv_bits, intlv_size, xor_low_bit):
     return interface
 
 
-def config_mem(options, system):
+def config_mem(options, system, clk_domain):
     """
     Create the memory controllers based on the options and attach them.
 
@@ -217,7 +217,7 @@ def config_mem(options, system):
             if opt_mem_type and (not opt_nvm_type or range_iter % 2 != 0):
                 # Create the DRAM interface
                 dram_intf = create_mem_intf(
-                    intf, r, i, intlv_bits, intlv_size, opt_xor_low_bit
+                    intf, r, i, intlv_bits, intlv_size, opt_xor_low_bit, clk_domain
                 )
 
                 # Set the number of ranks based on the command-line
@@ -246,7 +246,7 @@ def config_mem(options, system):
 
             elif opt_nvm_type and (not opt_mem_type or range_iter % 2 == 0):
                 nvm_intf = create_mem_intf(
-                    n_intf, r, i, intlv_bits, intlv_size, opt_xor_low_bit
+                    n_intf, r, i, intlv_bits, intlv_size, opt_xor_low_bit, clk_domain
                 )
 
                 # Set the number of ranks based on the command-line
