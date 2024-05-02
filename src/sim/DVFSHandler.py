@@ -37,6 +37,13 @@ from m5.params import *
 from m5.proxy import *
 from m5.SimObject import SimObject
 
+from m5.util.fdthelper import (
+    FdtNode,
+    FdtProperty,
+    FdtPropertyWords,
+    FdtState,
+)
+
 
 # The handler in its current form is design to be centeralized, one per system
 # and manages all the source clock domains (SrcClockDomain) it is configured to
@@ -67,3 +74,12 @@ class DVFSHandler(SimObject):
     transition_latency = Param.Latency(
         "100us", "fixed latency for perf level migration"
     )
+
+    def generateDeviceTree(self, state):
+        root = FdtNode("/")
+
+        for domain in self.domains:
+            node = domain.generateDeviceTree(state)
+            root.append(node)
+
+        return root
