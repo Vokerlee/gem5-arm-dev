@@ -1408,11 +1408,11 @@ class HPI_FloatSimdFU(MinorFU):
             "FloatAdd",
             "FloatCmp",
             "FloatCvt",
+            "FloatMisc",
             "FloatMult",
+            "FloatMultAcc",
             "FloatDiv",
             "FloatSqrt",
-            "FloatMisc",
-            "FloatMultAcc",
             "SimdAdd",
             "SimdAddAcc",
             "SimdAlu",
@@ -1424,6 +1424,7 @@ class HPI_FloatSimdFU(MinorFU):
             "SimdMatMultAcc",
             "SimdShift",
             "SimdShiftAcc",
+            "SimdDiv",
             "SimdSqrt",
             "SimdFloatAdd",
             "SimdFloatAlu",
@@ -1435,6 +1436,22 @@ class HPI_FloatSimdFU(MinorFU):
             "SimdFloatMultAcc",
             "SimdFloatMatMultAcc",
             "SimdFloatSqrt",
+            "SimdReduceAdd",
+            "SimdReduceAlu",
+            "SimdReduceCmp",
+            "SimdFloatReduceAdd",
+            "SimdFloatReduceCmp",
+            "SimdAes",
+            "SimdAesMix",
+            "SimdSha1Hash",
+            "SimdSha1Hash2",
+            "SimdSha256Hash",
+            "SimdSha256Hash2",
+            "SimdShaSigma2",
+            "SimdShaSigma3",
+            "Matrix",
+            "MatrixMov",
+            "MatrixOP",
         ]
     )
 
@@ -1662,6 +1679,32 @@ class HPI_MiscFU(MinorFU):
     opClasses = minorMakeOpClassSet(["IprAccess", "InstPrefetch"])
     opLat = 1
 
+class HPI_VecFU(MinorFU):
+    opClasses = minorMakeOpClassSet(
+        [
+            "VectorUnitStrideLoad",
+            "VectorUnitStrideStore",
+            "VectorUnitStrideMaskLoad",
+            "VectorUnitStrideMaskStore",
+            "VectorStridedLoad",
+            "VectorStridedStore",
+            "VectorIndexedLoad",
+            "VectorIndexedStore",
+            "VectorUnitStrideFaultOnlyFirstLoad",
+            "VectorWholeRegisterLoad",
+            "VectorWholeRegisterStore",
+            "VectorIntegerArith",
+            "VectorFloatArith",
+            "VectorFloatConvert",
+            "VectorIntegerReduce",
+            "VectorFloatReduce",
+            "VectorMisc",
+            "VectorIntegerExtension",
+            "VectorConfig",
+        ]
+    )
+    opLat = 6
+
 
 class HPI_FUPool(MinorFUPool):
     funcUnits = [
@@ -1670,8 +1713,10 @@ class HPI_FUPool(MinorFUPool):
         HPI_IntMulFU(),  # 2
         HPI_IntDivFU(),  # 3
         HPI_FloatSimdFU(),  # 4
-        HPI_MemFU(),  # 5
-        HPI_MiscFU(),  # 6
+        HPI_VecFU(), #5
+        MinorDefaultPredFU(),  #6
+        HPI_MemFU(),  # 7
+        HPI_MiscFU(),  # 8
     ]
 
 
@@ -1727,7 +1772,7 @@ class HPI_L2(Cache):
     response_latency = 5
     mshrs = 4
     tgts_per_mshr = 8
-    size = "1024kB"
+    size = "512kB"
     assoc = 16
     write_buffers = 16
     prefetcher = StridePrefetcher(queue_size=8, degree=12)

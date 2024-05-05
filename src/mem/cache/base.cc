@@ -43,6 +43,9 @@
  * Definition of BaseCache functions.
  */
 
+#include <string>
+#include <cstdint>
+
 #include "mem/cache/base.hh"
 
 #include "base/compiler.hh"
@@ -62,6 +65,7 @@
 #include "params/BaseCache.hh"
 #include "params/WriteAllocator.hh"
 #include "sim/cur_tick.hh"
+#include "sim/probe/pmu.hh"
 
 namespace gem5
 {
@@ -543,6 +547,7 @@ BaseCache::recvTimingResp(PacketPtr pkt)
     bool is_fill = !mshr->isForward &&
         (pkt->isRead() || pkt->cmd == MemCmd::UpgradeResp ||
          mshr->wasWholeLineWrite);
+    bool updated_block_data = false;
 
     // make sure that if the mshr was due to a whole line write then
     // the response is an invalidation
@@ -556,7 +561,7 @@ BaseCache::recvTimingResp(PacketPtr pkt)
 
         const bool allocate = (writeAllocator && mshr->wasWholeLineWrite) ?
             writeAllocator->allocate() : mshr->allocOnFill();
-        blk = handleFill(pkt, blk, writebacks, allocate);
+        blk = handleFill(pkt, blk, writebacks, allocate, &updated_block_data);
         assert(blk != nullptr);
         ppFill->notify(CacheAccessProbeArg(pkt, accessor));
     }
@@ -586,6 +591,16 @@ BaseCache::recvTimingResp(PacketPtr pkt)
     }
 
     serviceMSHRTargets(mshr, pkt, blk);
+
+    if (updated_block_data && !blk->wasPrefetched()) {
+        int num_requestor_cpu = -1;
+        RequestorID requestor = pkt->req->requestorId();
+
+       if (system->isRequestorCPU(requestor, &num_requestor_cpu)) {
+            ppRefillCounters[num_requestor_cpu]->notify(1);
+       }
+    }
+
     // We are stopping servicing targets early for the Locked RMW Read until
     // the write comes.
     if (!mshr->hasLockedRMWReadTarget()) {
@@ -1518,7 +1533,7 @@ BaseCache::maintainClusivity(bool from_cache, CacheBlk *blk)
 
 CacheBlk*
 BaseCache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
-                      bool allocate)
+                      bool allocate, bool *updated_block_data)
 {
     assert(pkt->isResponse());
     Addr addr = pkt->getAddr();
@@ -1604,6 +1619,10 @@ BaseCache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
         assert(pkt->getSize() == blkSize);
 
         updateBlockData(blk, pkt, has_old_data);
+
+        if (updated_block_data) {
+            *updated_block_data = true;
+        }
     }
     // The block will be ready when the payload arrives and the fill is done
     blk->setWhenReady(clockEdge(fillLatency) + pkt->headerDelay +
@@ -2525,6 +2544,21 @@ BaseCache::regProbePoints()
     ppDataUpdate =
         new ProbePointArg<CacheDataUpdateProbeArg>(
             this->getProbeManager(), "Data Update");
+
+    size_t n_cpu_requestors = system->maxCPURequestors();
+
+    ppHitCounters.resize(n_cpu_requestors);
+    ppMissCounters.resize(n_cpu_requestors);
+    ppRefillCounters.resize(n_cpu_requestors);
+
+    for (size_t i = 0; i < n_cpu_requestors; ++i) {
+        ppHitCounters[i].reset(new probing::PMU(getProbeManager(),
+                                                "HitEvents" + std::to_string(i)));
+        ppMissCounters[i].reset(new probing::PMU(getProbeManager(),
+                                                "MissEvents" + std::to_string(i)));
+        ppRefillCounters[i].reset(new probing::PMU(getProbeManager(),
+                                                "RefillEvents" + std::to_string(i)));
+    }
 }
 
 ///////////////

@@ -467,7 +467,7 @@ System::lookupRequestorId(const std::string& requestor_name) const
 }
 
 bool
-System::isRequestorCPU(RequestorID requestor_id, size_t* numCPU)
+System::isRequestorCPU(RequestorID requestor_id, int* numCPU) const
 {
     for (int i =0; i < requestorsCPU.size(); i++) {
         if (requestorsCPU[i].id == requestor_id) {

@@ -73,6 +73,7 @@
 #include "sim/clocked_object.hh"
 #include "sim/eventq.hh"
 #include "sim/probe/probe.hh"
+#include "sim/probe/pmu.hh"
 #include "sim/serialize.hh"
 #include "sim/sim_exit.hh"
 #include "sim/system.hh"
@@ -369,6 +370,13 @@ class BaseCache : public ClockedObject
      * this probe partially overlaps with other probes.
      */
     ProbePointArg<CacheDataUpdateProbeArg> *ppDataUpdate;
+
+    /**
+     * Counters for PMU cache events implementation
+     */
+    std::vector<probing::PMUUPtr> ppHitCounters;
+    std::vector<probing::PMUUPtr> ppMissCounters;
+    std::vector<probing::PMUUPtr> ppRefillCounters;
 
     /**
      * The writeAllocator drive optimizations for streaming writes.
@@ -784,7 +792,8 @@ class BaseCache : public ClockedObject
      * @return Pointer to the new cache block.
      */
     CacheBlk *handleFill(PacketPtr pkt, CacheBlk *blk,
-                         PacketList &writebacks, bool allocate);
+                         PacketList &writebacks, bool allocate,
+                         bool *updated_block_data = nullptr);
 
     /**
      * Allocate a new block and perform any necessary writebacks
@@ -1298,7 +1307,18 @@ class BaseCache : public ClockedObject
     void incMissCount(PacketPtr pkt)
     {
         assert(pkt->req->requestorId() < system->maxRequestors());
-        stats.cmdStats(pkt).misses[pkt->req->requestorId()]++;
+
+        int num_requestor_cpu = -1;
+        RequestorID requestor = pkt->req->requestorId();
+
+        bool is_requestor_cpu = system->isRequestorCPU(requestor,
+                                                       &num_requestor_cpu);
+        stats.cmdStats(pkt).misses[requestor]++;
+
+        if (is_requestor_cpu) {
+            ppMissCounters[num_requestor_cpu]->notify(1);
+        }
+
         pkt->req->incAccessDepth();
         if (missCount) {
             --missCount;
@@ -1309,7 +1329,18 @@ class BaseCache : public ClockedObject
     void incHitCount(PacketPtr pkt)
     {
         assert(pkt->req->requestorId() < system->maxRequestors());
+
+        int num_requestor_cpu = -1;
+        RequestorID requestor = pkt->req->requestorId();
+
+        bool is_requestor_cpu = system->isRequestorCPU(requestor,
+                                                       &num_requestor_cpu);
+
         stats.cmdStats(pkt).hits[pkt->req->requestorId()]++;
+
+        if (is_requestor_cpu) {
+            ppHitCounters[num_requestor_cpu]->notify(1);
+        }
     }
 
     /**

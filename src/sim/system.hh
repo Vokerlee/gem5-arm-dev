@@ -501,10 +501,10 @@ class System : public SimObject, public PCEventScope
 
     size_t maxCPURequestors() const { return requestorsCPU.size(); }
 
-  protected:
     /** Check if requestor is CPU */
-    bool isRequestorCPU(RequestorID requestor_id, size_t* numCPU);
+    bool isRequestorCPU(RequestorID requestor_id, int* numCPU) const;
 
+  protected:
     /** helper function for getRequestorId */
     RequestorID _getRequestorId(const SimObject* requestor,
                           const std::string& requestor_name, bool isCPU);

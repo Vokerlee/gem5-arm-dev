@@ -30,7 +30,7 @@ from m5.objects import *
 
 class L3Cache(Cache):
     assoc = 16
-    size = "8MB"
+    size = "4MB"
 
     tag_latency = 20
     data_latency = 20
